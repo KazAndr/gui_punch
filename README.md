@@ -16,9 +16,9 @@ Here we present a program with GUI for viewing and labeling of individual events
 
 Provide code examples and explanations of how to get the project, e.g.,
 
-	git clone https://github.com/KazAndr/gui_punch.git
-    cd 	gui_punch
-    python gui.py __or__ python3 gui.py
+	git clone git@github.com:KazAndr/gui_punch.git
+	cd gui_punch
+	python gui.py
 
 
 ## Dependencies
