@@ -17,7 +17,7 @@ from PyQt5.QtWidgets import QLabel, QPushButton, QFrame, QVBoxLayout
 from PyQt5.QtWidgets import QGridLayout, QTextEdit, QLineEdit, QFileDialog
 from PyQt5.QtWidgets import QMessageBox, QDesktopWidget, QSpinBox
 
-from PyQt5.QtGui import QIcon, QGuiApplication, QTextCursor
+from PyQt5.QtGui import QIcon, QGuiApplication
 from PyQt5.QtGui import QIntValidator, QDoubleValidator
 from PyQt5.QtCore import Qt
 
