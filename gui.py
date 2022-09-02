@@ -279,27 +279,36 @@ class App(QMainWindow):
 
         self.next_button.clicked.connect(self.replot_next)
         self.next_button.setShortcut("Ctrl+Right")
+        self.next_button.setToolTip("Hotkeys: Ctrl+Right")
         self.previous_button.clicked.connect(self.replot_previous)
         self.previous_button.setShortcut("Ctrl+Left")
+        self.previous_button.setToolTip("Hotkeys: Ctrl+Left")
         self.start.clicked.connect(self.start_labeling)
         self.stop.clicked.connect(self.stop_labeling)
         self.goto_button.clicked.connect(self.goto)
         self.goto_button.setShortcut("Ctrl+Return")
+        self.goto_button.setToolTip("Hotkeys: Ctrl+Enter")
         self.to_pulse.clicked.connect(lambda: self.set_label('Pulse'))
         self.to_pulse.setShortcut("P")
+        self.to_pulse.setToolTip("Hotkey: p")
         self.to_RFI.clicked.connect(lambda: self.set_label('RFI'))
         self.to_RFI.setShortcut("I")
+        self.to_RFI.setToolTip("Hotkey: i")
         self.to_None.clicked.connect(lambda: self.set_label('None'))
         self.to_None.setShortcut("O")
+        self.to_None.setToolTip("Hotkey: o")
         self.to_pulse_and_RFI.clicked.connect(
             lambda: self.set_label('Pulse and RFI')
         )
         
         self.save_file.clicked.connect(self.save_labeling_results)
         self.save_file.setShortcut("Ctrl+S")
+        self.save_file.setToolTip("Hotkeys: Ctrl+S")
         self.save_image.clicked.connect(self.save_current_image)
         self.save_image.setShortcut("Ctrl+I")
+        self.save_image.setToolTip("Hotkeys: Ctrl+I")
         self.use_mask.setShortcut("Ctrl+M")
+        self.use_mask.setToolTip("Hotkeys: Ctrl+M")
 
         '''
         Компановка рабочих областей на виджеты
