@@ -133,6 +133,7 @@ class App(QMainWindow):
         self.top = 30
 
         #  Deafault values for header
+        self.n_param_lines = 11
         self.n_spectra = None
         self.n_channels = None
         self.f_high = None
@@ -203,10 +204,10 @@ class App(QMainWindow):
 
         layout_labeling_box = QGridLayout()
         layout_labeling_box.addWidget(self.labeling_box, 0, 0, 1, 1)
-        
+
         self.use_mask = QCheckBox("Using a freq. mask")
         self.use_mask.setChecked(True)
-        
+
         layout_check_box = QGridLayout()
         layout_check_box.addWidget(self.use_mask, 0, 0, 1, 1)
 
@@ -243,7 +244,7 @@ class App(QMainWindow):
         layout_process.addWidget(self.stop, 0, 0, 1, 1)
         layout_process.addWidget(self.start, 0, 1, 1, 1)
 
-        self.save_file = QPushButton('Save log file')        
+        self.save_file = QPushButton('Save log file')
         self.save_image = QPushButton('Save current image')
 
         layout_save_image = QGridLayout()
@@ -300,7 +301,7 @@ class App(QMainWindow):
         self.to_pulse_and_RFI.clicked.connect(
             lambda: self.set_label('Pulse and RFI')
         )
-        
+
         self.save_file.clicked.connect(self.save_labeling_results)
         self.save_file.setShortcut("Ctrl+S")
         self.save_file.setToolTip("Hotkeys: Ctrl+S")
@@ -326,7 +327,7 @@ class App(QMainWindow):
         frame_labeling_box = QFrame()
         frame_labeling_box.setLayout(layout_labeling_box)
 
-        frame_check_box =  QFrame()
+        frame_check_box = QFrame()
         frame_check_box.setLayout(layout_check_box)
 
         frame_navigation = QFrame()
@@ -389,7 +390,6 @@ class App(QMainWindow):
             self.labels = self.get_labels()
 
             self.refresh_labelbox()
-            self.set_cursor(0)
 
             f_hi = self.f_high / 1000
             f_lo = self.f_low / 1000
@@ -397,7 +397,7 @@ class App(QMainWindow):
             self.freq_list = np.linspace(f_lo, f_hi, self.n_channels)
             delays_list = self.delays_DM_list(self.freq_list, self.DM)
             tsamp = tsamp = self.t_sample * u.second
-            
+
             self.delays_list_point = [
                 int(round(i, 0))
                 for i in (delays_list / tsamp.to(u.millisecond)).value
@@ -444,12 +444,12 @@ class App(QMainWindow):
     def replot_next(self):
         step = self.steps[self.data_index]
         self.data = self.object.get_data(nstart=step, nsamp=self.window)
-        
+
         if self.use_mask.isChecked():
             self.data = self.data * self.mask
         else:
             pass
-        
+
         self.dd_data = self.dedispersion(
             self.data.T,
             self.delays_list_point[::-1]
@@ -468,7 +468,7 @@ class App(QMainWindow):
         self.main_panel.setLayout(self.hbox)
         self.setCentralWidget(self.main_panel)
 
-        self.label.setText(str(self.labels[self.data_index][2]))
+        self.label.setText(str(self.labels[self.data_index][1]))
 
         self.show()
 
@@ -477,15 +477,13 @@ class App(QMainWindow):
     def replot_previous(self):
         self.data_index -= 2
         self.replot_next()
-        self.set_cursor(self.data_index)
 
     def goto(self):
         self.data_index = self.spinBox.value()
         self.replot_next()
-        self.set_cursor(self.data_index)
 
     def set_label(self, label):
-        if self.labels[self.data_index - 1][2] != 'No label':
+        if self.labels[self.data_index - 1][1] != 'No label':
             msg = QuestionBox(
                 'This subint has already labeled.',
                 'Would you like to relabel this subint?'
@@ -495,25 +493,23 @@ class App(QMainWindow):
             if reply == QMessageBox.No:
                 return None
 
-        self.labels[self.data_index - 1][2] = label
+        self.labels[self.data_index - 1][1] = label
         self.label.setText(label)
         self.refresh_labelbox()
-        self.set_cursor(self.data_index)
 
     def save_current_image(self):
         path_dir = os.path.join(
-            os.getcwd(), 
+            os.getcwd(),
             '{0}_{1}'.format(self.name_value.text(), self.window)
-        )    
+        )
 
         if not os.path.isdir(path_dir):
             os.mkdir(path_dir)
 
         filename = '{0}_subint_{1}.png'.format(
-            os.path.basename(self.fil_file)[:-4], 
+            os.path.basename(self.fil_file)[:-4],
             self.data_index - 1
-        )        
-
+        )
 
         self.plotter.fig.savefig('{0}{1}{2}'.format(
             path_dir,
@@ -522,31 +518,31 @@ class App(QMainWindow):
             ), dpi=350)
 
     # process functions
-    
-    def find_nearest(self, array, value): 
-        array = np.asarray(array) 
-        idx = (np.abs(array - value)).argmin() 
+
+    def find_nearest(self, array, value):
+        array = np.asarray(array)
+        idx = (np.abs(array - value)).argmin()
 
         return idx
-    
+
     def get_mask(self):
         F_HI_MASK = 1.48
         F_LO_MASK = 1.26
-        
+
         start = self.find_nearest(self.freq_list, F_LO_MASK)
         end = self.find_nearest(self.freq_list, F_HI_MASK)
-        
+
         hi_mask_lines = start
         low_mask_lines = self.n_channels - end
         payload_lines = self.n_channels - low_mask_lines - hi_mask_lines
-        
+
         hi_mask = np.full((hi_mask_lines, self.window), 0)
         payload = np.full((payload_lines, self.window), 1)
         low_mask = np.full((low_mask_lines, self.window), 0)
 
         mask = np.concatenate((hi_mask, payload, low_mask))
-                              
-        return mask.T 
+
+        return mask.T
 
     def get_mesage_for_header(self):
         msg = (
@@ -566,15 +562,14 @@ class App(QMainWindow):
         self.labeling_box.clear()
         temp_array = []
         for line in self.labels:
-            if line[2] == 'No label':
-                temp_array.append('subint {0}: {1}'.format(line[1], line[2]))
+            if line[1] == 'No label':
+                temp_array.append('subint {0}: {1}'.format(line[0], line[1]))
             else:
                 temp_array.append(
-                    '*** subint {0}: {1} ***'.format(line[1], line[2])
+                    '*** subint {0}: {1} ***'.format(line[0], line[1])
                 )
 
         self.labeling_box.append('\n'.join(temp_array))
-        QGuiApplication.processEvents()
 
     def get_header_info(self):
 
@@ -604,7 +599,7 @@ class App(QMainWindow):
             self.name_value.text(),
             self.window
         )
-        
+
         pathname = 'labeling_log{0}{1}{2}'.format(
             os.sep,
             name_part,
@@ -614,13 +609,13 @@ class App(QMainWindow):
         if os.path.isfile(pathname):
             labels = []
             with open(pathname, 'r') as file:
+                # skip header
+                [file.readline() for _ in range(self.n_param_lines)]
+
                 for line in file:
                     labels.append(line.strip().split(','))
         else:
-            labels = [
-                [os.path.basename(self.fil_file), i, 'No label']
-                for i in range(len(self.steps))
-            ]
+            labels = [[i, 'No label'] for i in range(len(self.steps))]
 
         return labels
 
@@ -675,33 +670,41 @@ class App(QMainWindow):
         self.dm_value.setEnabled(True)
         self.window_value.setEnabled(True)
         self.name_value.setEnabled(True)
-        
+
         self.save_labeling_results()
-        
+
     def save_labeling_results(self):
         name_part = os.path.basename(self.fil_file)[:-4]
         end_of_name = '_{0}_{1}.logcsv'.format(
             self.name_value.text(),
             self.window
         )
-        
+
         pathname = 'labeling_log{0}{1}{2}'.format(
             os.sep,
             name_part,
             end_of_name
         )
-        
+
         with open(pathname, 'w') as file:
+            file.write('# Header information\n')
+            file.write('# filename: {}\n'.format(self.fil_file))
+            file.write('# N_spectra: {}\n'.format(self.n_spectra))
+            file.write('# f_high [MHz]: {}\n'.format(self.f_high))
+            file.write('# f_low [MHz]: {}\n'.format(self.f_low))
+            file.write('# N_channels: {}\n'.format(self.n_channels))
+            file.write('# DM [cm-3pc]: {}\n'.format(self.DM))
+            file.write('# t_sample [s]: {}\n'.format(self.t_sample))
+            file.write('# t_samples_in_window: {}\n'.format(self.window))
+            file.write('# N_subints: {}\n'.format(len(self.steps)))
+            file.write('\n')
+
             for line in self.labels:
-                file.write('{0},{1},{2}\n'.format(line[0], line[1], line[2]))
+                file.write('{0},{1}\n'.format(line[0], line[1]))
 
         msg = WarningBox('Log file was saved.', pathname)
         msg.exec_()
 
-    def set_cursor(self, value):
-        cursor = self.labeling_box.textCursor()
-        cursor.setPosition(value + 10)
-        self.labeling_box.setTextCursor(cursor)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
