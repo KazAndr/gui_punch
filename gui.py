@@ -243,11 +243,13 @@ class App(QMainWindow):
         layout_process.addWidget(self.stop, 0, 0, 1, 1)
         layout_process.addWidget(self.start, 0, 1, 1, 1)
 
+        self.save_file = QPushButton('Save log file')        
         self.save_image = QPushButton('Save current image')
 
         layout_save_image = QGridLayout()
         # addWidget(QWidget, row, column, rows, columns)
-        layout_save_image.addWidget(self.save_image, 0, 0, 1, 2)
+        layout_save_image.addWidget(self.save_file, 0, 0, 1, 2)
+        layout_save_image.addWidget(self.save_image, 1, 0, 1, 2)
 
         # deacivate several buttons before loading data
         self.next_button.setEnabled(False)
@@ -259,6 +261,7 @@ class App(QMainWindow):
         self.stop.setEnabled(False)
         self.spinBox.setEnabled(False)
         self.goto_button.setEnabled(False)
+        self.save_file.setEnabled(False)
         self.save_image.setEnabled(False)
         self.labeling_box.setEnabled(False)
         self.use_mask.setEnabled(False)
@@ -291,8 +294,11 @@ class App(QMainWindow):
         self.to_pulse_and_RFI.clicked.connect(
             lambda: self.set_label('Pulse and RFI')
         )
+        
+        self.save_file.clicked.connect(self.save_labeling_results)
+        self.save_file.setShortcut("Ctrl+S")
         self.save_image.clicked.connect(self.save_current_image)
-        self.save_image.setShortcut("Ctrl+S")
+        self.save_image.setShortcut("Ctrl+I")
         self.use_mask.setShortcut("Ctrl+M")
 
         '''
@@ -401,6 +407,7 @@ class App(QMainWindow):
             self.stop.setEnabled(True)
             self.spinBox.setEnabled(True)
             self.goto_button.setEnabled(True)
+            self.save_file.setEnabled(True)
             self.save_image.setEnabled(True)
             self.labeling_box.setEnabled(True)
             self.use_mask.setEnabled(True)
@@ -652,13 +659,17 @@ class App(QMainWindow):
         self.goto_button.setEnabled(False)
         self.goto_button.setEnabled(False)
         self.labeling_box.setEnabled(False)
+        self.save_file.setEnabled(False)
         self.save_image.setEnabled(False)
         self.use_mask.setEnabled(False)
 
         self.dm_value.setEnabled(True)
         self.window_value.setEnabled(True)
         self.name_value.setEnabled(True)
-
+        
+        self.save_labeling_results()
+        
+    def save_labeling_results(self):
         name_part = os.path.basename(self.fil_file)[:-4]
         end_of_name = '_{0}_{1}.logcsv'.format(
             self.name_value.text(),
