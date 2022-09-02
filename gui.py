@@ -53,7 +53,7 @@ class PlotCanvas(FigCanvas):
 
         ax = self.fig.add_subplot(spec5[0, 0])  # row, col
         ax.set_title(
-            f"{title}\nsubint {index}"
+            "{0}\nsubint {1}".format(title, index)
             )
 
         chart = np.sum(self.dd_data, axis=0)
@@ -102,7 +102,7 @@ class WarningBox(QMessageBox):
     def initUI(self):
         self.setIcon(QMessageBox.Warning)
         self.setWindowTitle('Warning!')
-        self.setText(f'{self.title}\n\n{self.text}')
+        self.setText('{0}\n\n{1}'.format(self.title, self.text))
         self.setStandardButtons(QMessageBox.Ok)
         self.setDefaultButton(QMessageBox.Ok)
 
@@ -152,7 +152,7 @@ class App(QMainWindow):
         '''
         self.setWindowTitle(self.title)
         self.setGeometry(self.left, self.top, self.width, self.height)
-        self.setWindowIcon(QIcon(f'icons{os.sep}logo.png'))
+        self.setWindowIcon(QIcon('icons{0}logo.png'.format(os.sep)))
 
         ######################################################################
 
@@ -452,7 +452,7 @@ class App(QMainWindow):
         self.main_panel.setLayout(self.hbox)
         self.setCentralWidget(self.main_panel)
 
-        self.label.setText(f'{self.labels[self.data_index][2]}')
+        self.label.setText(str(self.labels[self.data_index][2]))
 
         self.show()
 
@@ -485,21 +485,25 @@ class App(QMainWindow):
         self.set_cursor(self.data_index)
 
     def save_current_image(self):
-
-        path_dir = (
-            f'{os.getcwd()}{os.sep}'
-            f'{self.name_value.text()}_{self.window}{os.sep}'
-        )
+        path_dir = os.path.join(
+            os.getcwd(), 
+            '{0}_{1}'.format(self.name_value.text(), self.window)
+        )    
 
         if not os.path.isdir(path_dir):
             os.mkdir(path_dir)
 
-        filename = (
-            f'{os.path.basename(self.fil_file)[:-4]}'
-            f'_subint_{self.data_index - 1}.png'
-        )
+        filename = '{0}_subint_{1}.png'.format(
+            os.path.basename(self.fil_file)[:-4], 
+            self.data_index - 1
+        )        
 
-        self.plotter.fig.savefig(f'{path_dir}{filename}', dpi=350)
+
+        self.plotter.fig.savefig('{0}{1}{2}'.format(
+            path_dir,
+            os.sep,
+            filename
+            ), dpi=350)
 
     # process functions
     
@@ -530,14 +534,14 @@ class App(QMainWindow):
 
     def get_mesage_for_header(self):
         msg = (
-            f'Header info:\n'
-            f'\n'
-            f'n_spectra: {self.n_spectra}\n'
-            f'n_channels: {self.n_channels}\n'
-            f'f_high: {self.f_high}\n'
-            f'f_low: {self.f_low}\n'
-            f't_sample: {self.t_sample}\n'
-            f'N subints: {len(self.steps)}\n'
+            'Header info:\n' +
+            '\n' +
+            'n_spectra: {0}\n'.format(self.n_spectra) +
+            'n_channels: {0}\n'.format(self.n_channels) +
+            'f_high: {0}\n'.format(self.f_high) +
+            'f_low: {0}\n'.format(self.f_low) +
+            't_sample: {0}\n'.format(self.t_sample) +
+            'N subints: {0}\n'.format(len(self.steps))
         )
 
         return msg
@@ -547,9 +551,12 @@ class App(QMainWindow):
         temp_array = []
         for line in self.labels:
             if line[2] == 'No label':
-                temp_array.append(f'subint {line[1]}: {line[2]}')
+                temp_array.append('subint {0}: {1}'.format(line[1], line[2]))
             else:
-                temp_array.append(f'*** subint {line[1]}: {line[2]} ***')
+                temp_array.append(
+                    '*** subint {0}: {1} ***'.format(line[1], line[2])
+                )
+
         self.labeling_box.append('\n'.join(temp_array))
         QGuiApplication.processEvents()
 
@@ -572,12 +579,21 @@ class App(QMainWindow):
             self.f_low = fch1
 
     def get_labels(self):
-        if not os.path.isdir(f'{os.getcwd()}{os.sep}labeling_log'):
+        labeling_log = '{0}{1}labeling_log'.format(os.getcwd(), os.sep)
+        if not os.path.isdir(labeling_log):
             os.mkdir('labeling_log')
 
-        name_part = f'{os.path.basename(self.fil_file)[:-4]}'
-        end_of_name = f'_{self.name_value.text()}_{self.window}.logcsv'
-        pathname = f'labeling_log{os.sep}{name_part}{end_of_name}'
+        name_part = os.path.basename(self.fil_file)[:-4]
+        end_of_name = '_{0}_{1}.logcsv'.format(
+            self.name_value.text(),
+            self.window
+        )
+        
+        pathname = 'labeling_log{0}{1}{2}'.format(
+            os.sep,
+            name_part,
+            end_of_name
+        )
 
         if os.path.isfile(pathname):
             labels = []
@@ -643,12 +659,21 @@ class App(QMainWindow):
         self.window_value.setEnabled(True)
         self.name_value.setEnabled(True)
 
-        name_part = f'{os.path.basename(self.fil_file)[:-4]}'
-        end_of_name = f'_{self.name_value.text()}_{self.window}.logcsv'
-        pathname = f'labeling_log{os.sep}{name_part}{end_of_name}'
+        name_part = os.path.basename(self.fil_file)[:-4]
+        end_of_name = '_{0}_{1}.logcsv'.format(
+            self.name_value.text(),
+            self.window
+        )
+        
+        pathname = 'labeling_log{0}{1}{2}'.format(
+            os.sep,
+            name_part,
+            end_of_name
+        )
+        
         with open(pathname, 'w') as file:
             for line in self.labels:
-                file.write(f'{line[0]},{line[1]},{line[2]}\n')
+                file.write('{0},{1},{2}\n'.format(line[0], line[1], line[2]))
 
         msg = WarningBox('Log file was saved.', pathname)
         msg.exec_()
