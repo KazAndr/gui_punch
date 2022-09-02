@@ -133,6 +133,7 @@ class App(QMainWindow):
         self.top = 30
 
         #  Deafault values for header
+        self.n_param_lines = 11
         self.n_spectra = None
         self.n_channels = None
         self.f_high = None
@@ -468,7 +469,7 @@ class App(QMainWindow):
         self.main_panel.setLayout(self.hbox)
         self.setCentralWidget(self.main_panel)
 
-        self.label.setText(str(self.labels[self.data_index][2]))
+        self.label.setText(str(self.labels[self.data_index][1]))
 
         self.show()
 
@@ -485,7 +486,7 @@ class App(QMainWindow):
         self.set_cursor(self.data_index)
 
     def set_label(self, label):
-        if self.labels[self.data_index - 1][2] != 'No label':
+        if self.labels[self.data_index - 1][1] != 'No label':
             msg = QuestionBox(
                 'This subint has already labeled.',
                 'Would you like to relabel this subint?'
@@ -495,7 +496,7 @@ class App(QMainWindow):
             if reply == QMessageBox.No:
                 return None
 
-        self.labels[self.data_index - 1][2] = label
+        self.labels[self.data_index - 1][1] = label
         self.label.setText(label)
         self.refresh_labelbox()
         self.set_cursor(self.data_index)
@@ -566,11 +567,11 @@ class App(QMainWindow):
         self.labeling_box.clear()
         temp_array = []
         for line in self.labels:
-            if line[2] == 'No label':
-                temp_array.append('subint {0}: {1}'.format(line[1], line[2]))
+            if line[1] == 'No label':
+                temp_array.append('subint {0}: {1}'.format(line[0], line[1]))
             else:
                 temp_array.append(
-                    '*** subint {0}: {1} ***'.format(line[1], line[2])
+                    '*** subint {0}: {1} ***'.format(line[0], line[1])
                 )
 
         self.labeling_box.append('\n'.join(temp_array))
@@ -614,13 +615,13 @@ class App(QMainWindow):
         if os.path.isfile(pathname):
             labels = []
             with open(pathname, 'r') as file:
+                # skip header
+                [file.readline() for _ in range(self.n_param_lines)]
+                
                 for line in file:
                     labels.append(line.strip().split(','))
         else:
-            labels = [
-                [os.path.basename(self.fil_file), i, 'No label']
-                for i in range(len(self.steps))
-            ]
+            labels = [[i, 'No label'] for i in range(len(self.steps))]
 
         return labels
 
@@ -692,8 +693,20 @@ class App(QMainWindow):
         )
         
         with open(pathname, 'w') as file:
+            file.write('# Header information\n')
+            file.write('# filename: {}\n'.format(self.fil_file))
+            file.write('# N_spectra: {}\n'.format(self.n_spectra))
+            file.write('# f_high [MHz]: {}\n'.format(self.f_high))
+            file.write('# f_low [MHz]: {}\n'.format(self.f_low))
+            file.write('# N_channels: {}\n'.format(self.n_channels))
+            file.write('# DM [cm-3pc]: {}\n'.format(self.DM))
+            file.write('# t_sample [s]: {}\n'.format(self.t_sample))
+            file.write('# t_samples_in_window: {}\n'.format(self.window))
+            file.write('# N_subints: {}\n'.format(len(self.steps)))
+            file.write('\n')
+            
             for line in self.labels:
-                file.write('{0},{1},{2}\n'.format(line[0], line[1], line[2]))
+                file.write('{0},{1}\n'.format(line[0], line[1]))
 
         msg = WarningBox('Log file was saved.', pathname)
         msg.exec_()
