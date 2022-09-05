@@ -207,9 +207,12 @@ class App(QMainWindow):
 
         self.use_mask = QCheckBox("Using a freq. mask")
         self.use_mask.setChecked(True)
+        self.auto_incr = QCheckBox("Auto. increment")
+        self.auto_incr.setChecked(True)
 
         layout_check_box = QGridLayout()
         layout_check_box.addWidget(self.use_mask, 0, 0, 1, 1)
+        layout_check_box.addWidget(self.auto_incr, 1, 0, 1, 1)
 
         self.next_button = QPushButton('Next scan')
         self.previous_button = QPushButton('Previous scan')
@@ -266,6 +269,7 @@ class App(QMainWindow):
         self.save_image.setEnabled(False)
         self.labeling_box.setEnabled(False)
         self.use_mask.setEnabled(False)
+        self.auto_incr.setEnabled(False)
 
         # plot random data
         self.plotter = PlotCanvas(
@@ -420,6 +424,7 @@ class App(QMainWindow):
             self.save_image.setEnabled(True)
             self.labeling_box.setEnabled(True)
             self.use_mask.setEnabled(True)
+            self.auto_incr.setEnabled(True)
 
             # deactivation boxes for input DM and w_size values
 
@@ -496,6 +501,9 @@ class App(QMainWindow):
         self.labels[self.data_index - 1][1] = label
         self.label.setText(label)
         self.refresh_labelbox()
+        
+        if self.auto_incr.isChecked():
+            self.replot_next()
 
     def save_current_image(self):
         path_dir = os.path.join(
@@ -666,6 +674,7 @@ class App(QMainWindow):
         self.save_file.setEnabled(False)
         self.save_image.setEnabled(False)
         self.use_mask.setEnabled(False)
+        self.auto_incr.setEnabled(False)
 
         self.dm_value.setEnabled(True)
         self.window_value.setEnabled(True)
