@@ -88,7 +88,7 @@ class PlotCanvas(FigCanvas):
 
         self.fig.subplots_adjust(wspace=0.05, hspace=0.05)
 
-        self.draw()
+        self.show()
 
 
 class WarningBox(QMessageBox):
