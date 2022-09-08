@@ -393,7 +393,7 @@ class App(QMainWindow):
 
             self.labels = self.get_labels()
 
-            self.refresh_labelbox()
+            # self.refresh_labelbox()
 
             f_hi = self.f_high / 1000
             f_lo = self.f_low / 1000
@@ -500,7 +500,7 @@ class App(QMainWindow):
 
         self.labels[self.data_index - 1][1] = label
         self.label.setText(label)
-        self.refresh_labelbox()
+        # self.refresh_labelbox()
         
         if self.auto_incr.isChecked():
             self.replot_next()
@@ -565,7 +565,8 @@ class App(QMainWindow):
         )
 
         return msg
-
+    
+    """
     def refresh_labelbox(self):
         self.labeling_box.clear()
         temp_array = []
@@ -578,6 +579,7 @@ class App(QMainWindow):
                 )
 
         self.labeling_box.append('\n'.join(temp_array))
+    """
 
     def get_header_info(self):
 
