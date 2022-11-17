@@ -30,7 +30,7 @@ matplotlib.rcParams.update({'font.size': 5})
 
 class PlotCanvas(FigCanvas):
 
-    def __init__(self, title, index, data, dd_data):
+    def __init__(self, title, index, data, dd_data, snr_calc, hw_value):
 
         self.data = data
         self.dd_data = dd_data
@@ -52,13 +52,33 @@ class PlotCanvas(FigCanvas):
         )
 
         ax = self.fig.add_subplot(spec5[0, 0])  # row, col
-        ax.set_title(
-            "{0}\nsubint {1}".format(title, index)
-            )
 
         chart = np.sum(self.dd_data, axis=0)
+        chart = chart - np.median(chart)
+        chart = chart / np.max(chart)
 
-        ax.plot(chart / np.max(chart), color='black', lw=0.5)
+        ax.plot(chart, color='black', lw=0.5)
+        if snr_calc:
+            argmax = np.argmax(chart)
+            left_edge = max(argmax - hw_value, 0)
+            right_edge = min(argmax + hw_value, len(chart))
+
+            noise_area = np.concatenate(
+                (chart[:left_edge], chart[right_edge:])
+            )
+            snr = np.round(1 / np.std(noise_area) / 2, 2)
+
+            ax.axvline(left_edge, ls='--', color='red', lw=0.5)
+            ax.axvline(right_edge, ls='--', color='red', lw=0.5)
+
+            ax.set_title(
+                "{0}\nsubint {1}\nsnr {2} ".format(title, index, snr)
+            )
+        else:
+            ax.set_title(
+                "{0}\nsubint {1}".format(title, index)
+            )
+
         ax.set_xlim(0, len(self.dd_data[0]))
         ax.get_xaxis().set_visible(False)
         ax.set_ylabel('Normalized intensity')
@@ -209,10 +229,21 @@ class App(QMainWindow):
         self.use_mask.setChecked(True)
         self.auto_incr = QCheckBox("Auto. increment")
         self.auto_incr.setChecked(True)
+        self.snr_calc = QCheckBox("SNR calculation")
+        self.snr_calc.setChecked(True)
+
+        self.hw_label = QLabel('Half-width')
+
+        self.hw_value = QLineEdit()
+        self.hw_value.setValidator(QIntValidator(1, 10))
+        self.hw_value.setText('5')
 
         layout_check_box = QGridLayout()
         layout_check_box.addWidget(self.use_mask, 0, 0, 1, 1)
         layout_check_box.addWidget(self.auto_incr, 1, 0, 1, 1)
+        layout_check_box.addWidget(self.snr_calc, 2, 0, 1, 1)
+        layout_check_box.addWidget(self.hw_label, 3, 0, 1, 1)
+        layout_check_box.addWidget(self.hw_value, 3, 1, 1, 1)
 
         self.next_button = QPushButton('Next scan')
         self.previous_button = QPushButton('Previous scan')
@@ -237,7 +268,6 @@ class App(QMainWindow):
         self.to_strong_pulse_and_NBRFI = QPushButton('SP+NBRFI')
         self.to_None = QPushButton('None')
         self.to_unknown = QPushButton('Unknown')
-        
 
         layout_labelibg = QGridLayout()
         # addWidget(QWidget, row, column, rows, columns)
@@ -289,13 +319,18 @@ class App(QMainWindow):
         self.labeling_box.setEnabled(False)
         self.use_mask.setEnabled(False)
         self.auto_incr.setEnabled(False)
+        self.snr_calc.setEnabled(False)
+        self.hw_label.setEnabled(False)
+        self.hw_value.setEnabled(False)
 
         # plot random data
         self.plotter = PlotCanvas(
             'TEST',
             0,
             np.random.rand(256, 256),
-            np.random.rand(256, 256)
+            np.random.rand(256, 256),
+            self.snr_calc.isChecked(),
+            int(self.hw_value.text())
         )
 
         self.layout_plot = QGridLayout()
@@ -312,7 +347,7 @@ class App(QMainWindow):
         self.goto_button.clicked.connect(self.goto)
         self.goto_button.setShortcut("Ctrl+Return")
         self.goto_button.setToolTip("Hotkeys: Ctrl+Enter")
-        
+
         self.to_w_pulse.clicked.connect(lambda: self.set_label('WP'))
         self.to_s_pulse.clicked.connect(lambda: self.set_label('SP'))
         self.to_BBRFI.clicked.connect(lambda: self.set_label('BBRFI'))
@@ -331,7 +366,7 @@ class App(QMainWindow):
         )
         self.to_None.clicked.connect(lambda: self.set_label('none'))
         self.to_unknown.clicked.connect(lambda: self.set_label('unknown'))
-        
+
         self.save_file.clicked.connect(self.save_labeling_results)
         self.save_file.setShortcut("Ctrl+S")
         self.save_file.setToolTip("Hotkeys: Ctrl+S")
@@ -401,9 +436,9 @@ class App(QMainWindow):
         options |= QFileDialog.DontUseNativeDialog
 
         self.fil_file, _ = QFileDialog.getOpenFileName(
-                    self, 'Choose file',
-                    '', 'Filterbank file (*.fil)',
-                    options=options)
+            self, 'Choose file',
+            '', 'Filterbank file (*.fil)',
+            options=options)
         if self.fil_file:
 
             # loading data
@@ -457,6 +492,9 @@ class App(QMainWindow):
             self.labeling_box.setEnabled(True)
             self.use_mask.setEnabled(True)
             self.auto_incr.setEnabled(True)
+            self.snr_calc.setEnabled(True)
+            self.hw_label.setEnabled(True)
+            self.hw_value.setEnabled(True)
 
             # deactivation boxes for input DM and w_size values
 
@@ -484,9 +522,6 @@ class App(QMainWindow):
 
         if self.use_mask.isChecked():
             self.data = self.data * self.mask
-        else:
-            pass
-
         self.dd_data = self.dedispersion(
             self.data.T,
             self.delays_list_point[::-1]
@@ -496,7 +531,9 @@ class App(QMainWindow):
             os.path.basename(self.fil_file),
             self.data_index,
             self.data,
-            self.dd_data
+            self.dd_data,
+            self.snr_calc.isChecked(),
+            int(self.hw_value.text())
         )
 
         self.layout_plot.addWidget(self.plotter, 0, 0, 1, 1)
@@ -533,7 +570,7 @@ class App(QMainWindow):
         self.labels[self.data_index - 1][1] = label
         self.label.setText(label)
         # self.refresh_labelbox()
-        
+
         if self.auto_incr.isChecked():
             self.replot_next()
 
@@ -555,15 +592,13 @@ class App(QMainWindow):
             path_dir,
             os.sep,
             filename
-            ), dpi=350)
+        ), dpi=350)
 
     # process functions
 
     def find_nearest(self, array, value):
         array = np.asarray(array)
-        idx = (np.abs(array - value)).argmin()
-
-        return idx
+        return (np.abs(array - value)).argmin()
 
     def get_mask(self):
         F_HI_MASK = 1.48
@@ -585,6 +620,7 @@ class App(QMainWindow):
         return mask.T
 
     def get_mesage_for_header(self):
+        # sourcery skip: inline-immediately-returned-variable
         msg = (
             'Header info:\n' +
             '\n' +
@@ -597,7 +633,7 @@ class App(QMainWindow):
         )
 
         return msg
-    
+
     """
     def refresh_labelbox(self):
         self.labeling_box.clear()
@@ -654,8 +690,7 @@ class App(QMainWindow):
                 # skip header
                 [file.readline() for _ in range(self.n_param_lines)]
 
-                for line in file:
-                    labels.append(line.strip().split(','))
+                labels.extend(line.strip().split(',') for line in file)
         else:
             labels = [[i, 'No label'] for i in range(len(self.steps))]
 
@@ -683,15 +718,10 @@ class App(QMainWindow):
         return dt_list
 
     def load_data(self, filename):
-        my_object = your.Your(filename)
-
-        return my_object
+        return your.Your(filename)
 
     def dedispersion(self, array, delays_list):
-        new_array = []
-        for line, points in zip(array, delays_list):
-            new_array.append(np.roll(line, -points))
-        return new_array
+        return [np.roll(line, -points) for line, points in zip(array, delays_list)]
 
     def stop_labeling(self):
         self.next_button.setEnabled(False)
@@ -715,6 +745,9 @@ class App(QMainWindow):
         self.save_image.setEnabled(False)
         self.use_mask.setEnabled(False)
         self.auto_incr.setEnabled(False)
+        self.snr_calc.setEnabled(False)
+        self.hw_label.setEnabled(False)
+        self.hw_value.setEnabled(False)
 
         self.dm_value.setEnabled(True)
         self.window_value.setEnabled(True)
@@ -722,6 +755,7 @@ class App(QMainWindow):
 
         self.save_labeling_results()
 
+    # sourcery skip: use-fstring-for-formatting
     def save_labeling_results(self):
         name_part = os.path.basename(self.fil_file)[:-4]
         end_of_name = '_{0}_{1}.logcsv'.format(
